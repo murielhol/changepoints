@@ -14,7 +14,9 @@ from dataclasses import dataclass, asdict
 @dataclass()
 class Definition:
 
-    def __init__(self, name: str, params: dict):
+    def __init__(self, name: str, params: Optional[dict] = None):
+        if params is None:
+            params = {}
         self.name = name
         self.__dict__.update(params)
 
@@ -255,7 +257,7 @@ class StudentTPosterior(Posterior):
 
     def estimate_parameters(self, data: np.array):
         _, loc, scale = scipy.stats.t.fit(data)
-        self.set_parameters(degrees_freedom=np.array([max(len(data) - 1, 1)]),
+        self.set_parameters(degrees_freedom=np.array([1]),
                             mean=np.array([loc]),
                             var=np.array([scale**2]),
                             )

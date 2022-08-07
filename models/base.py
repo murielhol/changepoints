@@ -3,7 +3,7 @@ from abc import ABC, abstractmethod
 from pathlib import Path
 from typing import Optional, List
 import pandas as pd
-
+import matplotlib.pyplot as plt
 
 @dataclass
 class Model(ABC):
@@ -44,7 +44,7 @@ class Model(ABC):
     def get_performance_metrics(true_changepoints: List[int], model_changepoints: List[int]) -> Optional[dict]:
 
         if not (model_changepoints and true_changepoints):
-            return None
+            return {}
 
         # on average how many days ahead can de model predict the changepoint
         result = {'nearest_changepoint': 0}
@@ -77,3 +77,26 @@ class Model(ABC):
 
         result['nearest_changepoint'] /= len(true_changepoints)
         return result
+
+    def plot_train_results(self, changepoints_train: List[int], changepoints_val: List[int],
+                           train_x: pd.DataFrame, train_y: pd.DataFrame,
+                           val_x: pd.DataFrame, val_y: pd.DataFrame):
+        f, axlist = plt.subplots(len(train_x.columns), 1, sharex=True)
+        if len(train_x.columns) == 1:
+            axlist = [axlist]
+        for i, col in enumerate(train_x.columns):
+            axlist[i].plot(train_x[col].index, train_x[col].values, c='b', label='train')
+            axlist[i].plot(val_x[col].index, val_x[col].values, c='c', label='val')
+            axlist[i].set_title(col)
+            true_cp = train_y['changepoints'].to_list() + val_y['changepoints'].to_list()
+            votes = train_y['votes'].to_list() + val_y['votes'].to_list()
+            for cp, vote in zip(true_cp, votes):
+                axlist[i].axvspan(cp-5, cp+5, alpha=vote/max(votes)*0.5, color='g')
+            for cp in changepoints_train + changepoints_val:
+                axlist[i].axvline(x=cp, c='r')
+        plt.legend()
+        plt.show()
+
+
+
+

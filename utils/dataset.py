@@ -41,6 +41,7 @@ class ChangePointDataset:
 class ChangePointDatasetGenerator:
 
     generator: Iterator[ChangePointDataset] = field(init=False)
+    minimum_rows = 100
 
     def __post_init__(self):
 
@@ -48,6 +49,8 @@ class ChangePointDatasetGenerator:
             annotation_df_dict = self._get_annotations()
             for dataset_name in annotation_df_dict.keys():
                 df = self._read_in_dataframe(dataset_name)
+                if len(df) < self.minimum_rows:
+                    continue
                 yield ChangePointDataset(inputs=df,
                                          changepoints=annotation_df_dict[dataset_name],
                                          name=dataset_name)
@@ -60,7 +63,9 @@ class ChangePointDatasetGenerator:
         # return pd.DataFrame({dataset_name: [1]})
         ts = TimeSeries.from_json(f'datasets/{dataset_name}/{dataset_name}.json')
         assert (ts.df.index == ts.t).all()
-        return ts.df
+        df = ts.df.drop(columns=["t"])
+        df = df.ffill()
+        return df
 
     def _get_annotations(self) -> Dict[str, pd.DataFrame]:
         # return  {'a': pd.DataFrame({"changepoints": [1]}),
